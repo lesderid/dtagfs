@@ -13,23 +13,22 @@ void main(string[] args)
 {
 	//TODO: Make tag provider(s) configurable
 
-	if(args.length < 2)
+	if(args.length < 3)
 	{
 		stderr.writeln("usage: dtagfs <source> <mount point> [-f] [-o option[,options...]]");
 		return;
 	}
 
-	auto source = args[0];
-	auto mountPoint = args[1];
+	auto source = args[1];
+	auto mountPoint = args[2];
 
 	TagProvider[] tagProviders;
 
 	string[] mountOptions;
 	bool fork;
 	arraySep = ",";
-	auto otherArgs = args[2..$];
 	auto options = getopt(
-		otherArgs,
+		args,
 
 		"o", &mountOptions,
 		"f|fork", &fork
