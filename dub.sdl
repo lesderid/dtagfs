@@ -1,0 +1,6 @@
+name "dtagfs"
+description "A tag-based FUSE virtual file system"
+authors "Les De Ridder"
+copyright "Copyright © 2016, Les De Ridder"
+license "NCSA"
+dependency "dfuse" version="~>0.3.0"
