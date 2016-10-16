@@ -30,20 +30,7 @@ class DublinCoreTagProvider : TagProvider
 		auto exiftool = execute(["exiftool", "-b", "-" ~ element, path]);
 		auto rawData = exiftool.output;
 
-		string[] data;
-		foreach(line; splitLines(rawData))
-		{
-			if(indexOf(line, ' ') == -1)
-			{
-				data ~= line;
-			}
-			else
-			{
-				data ~= '"' ~ line ~ '"';
-			}
-		}
-
-		return data;
+		return splitLines(rawData);
 	}
 
 	@property
@@ -52,3 +39,4 @@ class DublinCoreTagProvider : TagProvider
 		return true;
 	}
 }
+
