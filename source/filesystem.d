@@ -6,6 +6,8 @@ import std.file;
 import std.conv;
 import std.path;
 import std.array;
+import std.string;
+import std.stdio;
 
 import dfuse.fuse;
 
@@ -47,14 +49,16 @@ class FileSystem : Operations
 	{
 		if(path == "/" || isTag(path.baseName))
 		{
-			stat.st_mode = S_IFDIR | octal!700;
+			stat.st_mode = S_IFDIR | octal!500;
 			stat.st_size = 0;
 			return;
 		}
 		else if(isFile(path.baseName))
 		{
-			stat.st_mode = S_IFREG | octal!700;
-			stat.st_size = 42;
+			auto file = findFile(path.baseName);
+			lstat(toStringz(file), &stat);
+
+			stat.st_mode = S_IFREG | octal!400;
 			return;
 		}
 
@@ -69,6 +73,16 @@ class FileSystem : Operations
 	bool isFile(const(char)[] name)
 	{
 		return _tagCache.keys.any!(a => a.baseName == name);
+	}
+
+	string findFile(const(char)[] name)
+	{
+		if(!isFile(name))
+		{
+			return null;
+		}
+
+		return _tagCache.keys.filter!(a => indexOf(a, name) != -1).array[0];
 	}
 
 	string[] getTags(const(char)[] path)
@@ -119,6 +133,29 @@ class FileSystem : Operations
 	override string[] readdir(const(char)[] path)
 	{
 		//TODO: Don't return tags if only one file (or files with exactly the same set of tags) files?
-		return getTags(path) ~ getFiles(path);
+		if (path == "/")
+		{
+			return getTags(path) ~ getFiles(path);
+		}
+		else
+		{
+			return getTags(path) ~ getFiles(path) ~ [".", ".."];
+		}
 	}
+
+	override ulong read(const(char)[] path, ubyte[] buf, ulong offset)
+    {
+		auto realPath = findFile(path.baseName);
+		if(realPath == null)
+		{
+			throw new FuseException(errno.ENOENT);
+		}
+
+		auto file = File(realPath, "r");
+		file.seek(offset);
+		auto bytesRead = file.rawRead(buf).length;
+		file.close();
+
+		return bytesRead;
+    }
 }
