@@ -9,6 +9,8 @@ import std.array;
 import std.string;
 import std.stdio;
 
+import core.sys.posix.unistd;
+
 import dfuse.fuse;
 
 import dtagfs.tagprovider;
@@ -18,12 +20,18 @@ class FileSystem : Operations
 	private string _source;
 	private TagProvider[] _tagProviders;
 
+	private uid_t _uid;
+	private gid_t _gid;
+
 	private string[][string] _tagCache;
 
 	this(string source, TagProvider[] tagProviders)
 	{
 		_source = source;
 		_tagProviders = tagProviders;
+
+		_uid = getuid();
+		_gid = getgid();
 
 		cacheTags();
 	}
@@ -47,9 +55,12 @@ class FileSystem : Operations
 
 	override void getattr(const(char)[] path, ref stat_t stat)
 	{
+		stat.st_uid = _uid;
+		stat.st_gid = _gid;
+
 		if(path == "/" || isTag(path.baseName))
 		{
-			stat.st_mode = S_IFDIR | octal!500;
+			stat.st_mode = S_IFDIR | octal!555;
 			stat.st_size = 0;
 			return;
 		}
@@ -58,7 +69,7 @@ class FileSystem : Operations
 			auto file = findFile(path.baseName);
 			lstat(toStringz(file), &stat);
 
-			stat.st_mode = S_IFREG | octal!400;
+			stat.st_mode = S_IFREG | octal!444;
 			return;
 		}
 
