@@ -8,6 +8,7 @@ import dfuse.fuse;
 
 import dtagfs.filesystem;
 import dtagfs.tagprovider;
+import dtagfs.dublincore;
 
 void main(string[] args)
 {
@@ -22,7 +23,7 @@ void main(string[] args)
 	auto source = args[1];
 	auto mountPoint = args[2];
 
-	TagProvider[] tagProviders;
+	TagProvider[] tagProviders = [new DublinCoreTagProvider()];
 
 	string[] mountOptions;
 	bool fork;
