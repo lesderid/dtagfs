@@ -15,8 +15,6 @@ class DublinCoreTagProvider : TagProvider
 
 		string[] tags;
 
-		std.stdio.writeln(path);
-
 		tags ~= map!(a => a)(getElementData!"Subject"(path)).array;
 		tags ~= map!(a => "copyright:" ~ a)(getElementData!"Rights"(path)).array;
 		tags ~= map!(a => "relation:" ~ a)(getElementData!"Relation"(path)).array;
