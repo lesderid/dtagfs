@@ -1,6 +1,9 @@
 module dtagfs.tagprovider;
 
-class TagProvider
+interface TagProvider
 {
+	string[] getTags(string path);
 
+	@property
+	bool cacheReads();
 }
