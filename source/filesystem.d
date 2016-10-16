@@ -88,9 +88,9 @@ class FileSystem : Operations
 
 			return _tagCache.byKeyValue()
 				.filter!(a => tags.all!(b => a.value.canFind(b)))
-				.filter!(a => !tags.canFind(a.value))
 				.map!(a => a.value)
 				.joiner
+				.filter!(a => !tags.canFind(a))
 				.array
 				.sort()
 				.uniq
