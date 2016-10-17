@@ -1,6 +1,7 @@
 {
 	"fileVersion": 1,
 	"versions": {
-		"dfuse": {"path":"dfuse"}
+		"dfuse": {"path":"dfuse"},
+		"exempi-d": "0.1.0"
 	}
 }
