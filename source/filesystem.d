@@ -20,18 +20,16 @@ class FileSystem : Operations
 	private string _source;
 	private TagProvider[] _tagProviders;
 
-	private uid_t _uid;
-	private gid_t _gid;
-
 	private string[][string] _tagCache;
+
+	private stat_t _sourceStat;
 
 	this(string source, TagProvider[] tagProviders)
 	{
 		_source = source;
 		_tagProviders = tagProviders;
 
-		_uid = getuid();
-		_gid = getgid();
+		lstat(toStringz(source), &_sourceStat);
 
 		cacheTags();
 	}
@@ -55,25 +53,22 @@ class FileSystem : Operations
 
 	override void getattr(const(char)[] path, ref stat_t stat)
 	{
-		stat.st_uid = _uid;
-		stat.st_gid = _gid;
+		stat.st_uid = _sourceStat.st_uid;
+		stat.st_gid = _sourceStat.st_gid;
 
 		if(path == "/" || isTag(path.baseName))
 		{
-			stat.st_mode = S_IFDIR | octal!555;
-			stat.st_size = 0;
-			return;
+			stat.st_mode = _sourceStat.st_mode;
 		}
 		else if(isFile(path.baseName))
 		{
 			auto file = findFile(path.baseName);
 			lstat(toStringz(file), &stat);
-
-			stat.st_mode = S_IFREG | octal!444;
-			return;
 		}
-
-		throw new FuseException(errno.ENOENT);
+		else
+		{
+			throw new FuseException(errno.ENOENT);
+		}
 	}
 
 	bool isTag(const(char)[] name)
@@ -157,7 +152,7 @@ class FileSystem : Operations
 	override ulong read(const(char)[] path, ubyte[] buf, ulong offset)
     {
 		auto realPath = findFile(path.baseName);
-		if(realPath == null)
+		if(realPath is null)
 		{
 			throw new FuseException(errno.ENOENT);
 		}
