@@ -107,7 +107,7 @@ class FileSystem : Operations
 			return null;
 		}
 
-		return _tagCache.keys.filter!(a => indexOf(a, name) != -1).array[0];
+		return _tagCache.keys.find!(a => a.baseName == name)[0];
 	}
 
 	string[] getTags(const(char)[] path)
@@ -148,7 +148,6 @@ class FileSystem : Operations
 				.array;
 		}
 	}
-
 
 	override string[] readdir(const(char)[] path)
 	{
