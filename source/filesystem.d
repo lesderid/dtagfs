@@ -20,9 +20,13 @@ class FileSystem : Operations
 	private string _source;
 	private TagProvider[] _tagProviders;
 
-	private string[][string] _tagCache;
-
 	private stat_t _sourceStat;
+
+	private string[][string] _tagCache;
+	private stat_t[string] _statCache;
+	private string[][string] _dirCache;
+
+	private string[] _tagList;
 
 	this(string source, TagProvider[] tagProviders)
 	{
@@ -49,6 +53,13 @@ class FileSystem : Operations
 				_tagCache[file] ~= tagProvider.getTags(file);
 			}
 		}
+
+		_tagList = _tagCache.byValue()
+			.joiner
+			.array
+			.sort()
+			.uniq
+			.array;
 	}
 
 	override void getattr(const(char)[] path, ref stat_t stat)
@@ -62,8 +73,16 @@ class FileSystem : Operations
 		}
 		else if(isFile(path.baseName))
 		{
-			auto file = findFile(path.baseName);
-			lstat(toStringz(file), &stat);
+			if(path.baseName in _statCache)
+			{
+				stat = _statCache[path.baseName];
+			}
+			else
+			{
+				auto file = findFile(path.baseName);
+				lstat(toStringz(file), &stat);
+				_statCache[path.baseName] = stat;
+			}
 		}
 		else
 		{
@@ -73,7 +92,7 @@ class FileSystem : Operations
 
 	bool isTag(const(char)[] name)
 	{
-		return _tagCache.values.any!(a => a.canFind(name));
+		return _tagList.canFind(name);
 	}
 
 	bool isFile(const(char)[] name)
@@ -95,12 +114,7 @@ class FileSystem : Operations
 	{
 		if(path == "/")
 		{
-			return _tagCache.byValue()
-				.joiner
-				.array
-				.sort()
-				.uniq
-				.array;
+			return _tagList;
 		}
 		else
 		{
@@ -138,14 +152,19 @@ class FileSystem : Operations
 
 	override string[] readdir(const(char)[] path)
 	{
+		if(path in _dirCache)
+		{
+			return _dirCache[path];
+		}
+
 		//TODO: Don't return tags if only one file (or files with exactly the same set of tags) files?
 		if (path == "/")
 		{
-			return getTags(path) ~ getFiles(path);
+			return _dirCache[path] = getTags(path) ~ getFiles(path);
 		}
 		else
 		{
-			return getTags(path) ~ getFiles(path) ~ [".", ".."];
+			return _dirCache[path] = getTags(path) ~ getFiles(path) ~ [".", ".."];
 		}
 	}
 
