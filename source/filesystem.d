@@ -52,7 +52,8 @@ class FileSystem : Operations
 		{
 			foreach(file; dirEntries(_source, SpanMode.breadth).filter!(a => a.isFile))
 			{
-				_tagCache[file] ~= tagProvider.getTags(file);
+				auto tags = tagProvider.getTags(file);
+				_tagCache[file] ~= tags.map!(tag => tag.replace("/", "／")).array; //replace '/' (directory separator) with full-width solidus
 
 				_fileLinkCache[file.baseName] = file;
 			}
