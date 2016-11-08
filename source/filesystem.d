@@ -158,6 +158,13 @@ class FileSystem : Operations
 		return realPath.length;
 	}
 
+	override bool access(const(char)[] path, int mode)
+    {
+		//TODO: Check if this should always be true
+
+		return true;
+    }
+
 	override string[] readdir(const(char)[] path)
 	{
 		if(path in _dirCache)
