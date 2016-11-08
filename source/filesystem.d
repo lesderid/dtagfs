@@ -23,7 +23,6 @@ class FileSystem : Operations
 	private stat_t _sourceStat;
 
 	private string[][string] _tagCache;
-	private stat_t[string] _statCache;
 	private string[][string] _dirCache;
 
 	private string[] _tagList;
@@ -73,16 +72,8 @@ class FileSystem : Operations
 		}
 		else if(isFile(path.baseName))
 		{
-			if(path.baseName in _statCache)
-			{
-				stat = _statCache[path.baseName];
-			}
-			else
-			{
-				auto file = findFile(path.baseName);
-				lstat(toStringz(file), &stat);
-				_statCache[path.baseName] = stat;
-			}
+			stat.st_mode = S_IFLNK | octal!777;
+			stat.st_nlink = 1;
 		}
 		else
 		{
@@ -149,6 +140,20 @@ class FileSystem : Operations
 		}
 	}
 
+	override ulong readlink(const(char)[] path, ubyte[] buf)
+	{
+		auto realPath = findFile(path.baseName);
+		if(realPath is null)
+		{
+			std.stdio.writeln("not found");
+			throw new FuseException(errno.ENOENT);
+		}
+
+		core.stdc.string.strncpy(cast(char*)buf, cast(char*)realPath.toStringz, realPath.length);
+
+		return (cast(ubyte[])realPath).length;
+	}
+
 	override string[] readdir(const(char)[] path)
 	{
 		if(path in _dirCache)
@@ -156,7 +161,7 @@ class FileSystem : Operations
 			return _dirCache[path];
 		}
 
-		//TODO: Don't return tags if only one file (or files with exactly the same set of tags) files?
+		//TODO: Don't return tags if only one file (or files with exactly the same set of tags)?
 		if (path == "/")
 		{
 			return _dirCache[path] = getTags(path) ~ getFiles(path);
@@ -166,20 +171,4 @@ class FileSystem : Operations
 			return _dirCache[path] = getTags(path) ~ getFiles(path) ~ [".", ".."];
 		}
 	}
-
-	override ulong read(const(char)[] path, ubyte[] buf, ulong offset)
-    {
-		auto realPath = findFile(path.baseName);
-		if(realPath is null)
-		{
-			throw new FuseException(errno.ENOENT);
-		}
-
-		auto file = File(realPath, "r");
-		file.seek(offset);
-		auto bytesRead = file.rawRead(buf).length;
-		file.close();
-
-		return bytesRead;
-    }
 }
