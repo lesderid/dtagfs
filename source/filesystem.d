@@ -11,6 +11,7 @@ import std.stdio;
 
 import core.sys.posix.unistd;
 import core.stdc.string;
+import core.stdc.errno;
 
 import dfuse.fuse;
 
@@ -81,7 +82,7 @@ class FileSystem : Operations
 		}
 		else
 		{
-			throw new FuseException(errno.ENOENT);
+			throw new FuseException(ENOENT);
 		}
 	}
 
@@ -149,7 +150,7 @@ class FileSystem : Operations
 		auto realPath = findFile(path.baseName);
 		if(realPath is null)
 		{
-			throw new FuseException(errno.ENOENT);
+			throw new FuseException(ENOENT);
 		}
 
 		strncpy(cast(char*)buf, cast(char*)realPath.toStringz, realPath.length);
