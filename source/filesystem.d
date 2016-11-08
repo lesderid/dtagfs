@@ -10,6 +10,7 @@ import std.string;
 import std.stdio;
 
 import core.sys.posix.unistd;
+import core.stdc.string;
 
 import dfuse.fuse;
 
@@ -26,6 +27,7 @@ class FileSystem : Operations
 	private string[][string] _dirCache;
 
 	private string[] _tagList;
+	private string[string] _fileLinkCache;
 
 	this(string source, TagProvider[] tagProviders)
 	{
@@ -50,6 +52,8 @@ class FileSystem : Operations
 			foreach(file; dirEntries(_source, SpanMode.breadth).filter!(a => a.isFile))
 			{
 				_tagCache[file] ~= tagProvider.getTags(file);
+
+				_fileLinkCache[file.baseName] = file;
 			}
 		}
 
@@ -88,7 +92,7 @@ class FileSystem : Operations
 
 	bool isFile(const(char)[] name)
 	{
-		return _tagCache.keys.any!(a => a.baseName == name);
+		return (name in _fileLinkCache) !is null;
 	}
 
 	string findFile(const(char)[] name)
@@ -98,7 +102,7 @@ class FileSystem : Operations
 			return null;
 		}
 
-		return _tagCache.keys.find!(a => a.baseName == name)[0];
+		return _fileLinkCache[name];
 	}
 
 	string[] getTags(const(char)[] path)
@@ -145,13 +149,12 @@ class FileSystem : Operations
 		auto realPath = findFile(path.baseName);
 		if(realPath is null)
 		{
-			std.stdio.writeln("not found");
 			throw new FuseException(errno.ENOENT);
 		}
 
-		core.stdc.string.strncpy(cast(char*)buf, cast(char*)realPath.toStringz, realPath.length);
+		strncpy(cast(char*)buf, cast(char*)realPath.toStringz, realPath.length);
 
-		return (cast(ubyte[])realPath).length;
+		return realPath.length;
 	}
 
 	override string[] readdir(const(char)[] path)
