@@ -26,23 +26,23 @@ void main(string[] args)
 	TagProvider[] tagProviders = [new DublinCoreTagProvider()];
 
 	string[] mountOptions;
-	bool fork;
+	bool foreground;
 	arraySep = ",";
 	auto options = getopt(
 		args,
 
 		"o", &mountOptions,
-		"f|fork", &fork
+		"f|foreground", &foreground
 	);
 
-	auto filesystem = mount(source, mountPoint, tagProviders, mountOptions, fork);
+	auto filesystem = mount(source, mountPoint, tagProviders, mountOptions, foreground);
 }
 
-FileSystem mount(string source, string mountPoint, TagProvider[] tagProviders, string[] options, bool fork)
+FileSystem mount(string source, string mountPoint, TagProvider[] tagProviders, string[] options, bool foreground)
 {
 	auto filesystem = new FileSystem(source, tagProviders);
 
-	auto fuse = new Fuse("dtagfs", !fork, false);
+	auto fuse = new Fuse("dtagfs", foreground, false);
 	fuse.mount(filesystem, mountPoint, options);
 
 	return filesystem;

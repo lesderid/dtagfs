@@ -9,7 +9,7 @@ See [example.md](example.md).
 ## Usage
 `usage: dtagfs <source> <mount point> [-f] [-o option[,options...]]`
 
--f: fork to background
+-f: don't fork to background
 
 ## Supported tag sources
 * Dublin Core (XMP), via [exempi-d](https://github.com/lesderid/exempi-d)
