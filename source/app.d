@@ -3,6 +3,7 @@ module dtagfs.app;
 import std.stdio;
 import std.getopt;
 import std.array;
+import std.algorithm;
 
 import dfuse.fuse;
 
@@ -40,7 +41,14 @@ void main(string[] args)
 
 FileSystem mount(string source, string mountPoint, TagProvider[] tagProviders, string[] options, bool foreground)
 {
-	auto filesystem = new FileSystem(source, tagProviders);
+	auto noCommon = false;
+	if(options.canFind("nocomm"))
+	{
+		options = options.remove!(a => a == "nocomm");
+		noCommon = true;
+	}
+
+	auto filesystem = new FileSystem(source, tagProviders, noCommon);
 
 	auto fuse = new Fuse("dtagfs", foreground, false);
 	fuse.mount(filesystem, mountPoint, options);

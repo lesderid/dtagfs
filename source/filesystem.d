@@ -30,10 +30,14 @@ class FileSystem : Operations
 	private string[] _tagList;
 	private string[string] _fileLinkCache;
 
-	this(string source, TagProvider[] tagProviders)
+	private bool _noCommon;
+
+	this(string source, TagProvider[] tagProviders, bool noCommon)
 	{
 		_source = source;
 		_tagProviders = tagProviders;
+
+		_noCommon = noCommon;
 
 		lstat(toStringz(source), &_sourceStat);
 
@@ -117,11 +121,11 @@ class FileSystem : Operations
 		{
 			auto tags = pathSplitter(path).array[1..$];
 
-			return _tagCache.byKeyValue()
-				.filter!(a => tags.all!(b => a.value.canFind(b)))
-				.map!(a => a.value)
+			auto filePairs = _tagCache.byKeyValue().filter!(a => tags.all!(b => a.value.canFind(b)));
+			return filePairs.map!(a => a.value)
 				.joiner
 				.filter!(a => !tags.canFind(a))
+				.filter!(a => !_noCommon || !filePairs.all!(f => f.value.canFind(a)))
 				.array
 				.sort()
 				.uniq
@@ -173,7 +177,6 @@ class FileSystem : Operations
 			return _dirCache[path];
 		}
 
-		//TODO: Don't return tags if only one file (or files with exactly the same set of tags)?
 		if (path == "/")
 		{
 			return _dirCache[path] = getTags(path) ~ getFiles(path);
