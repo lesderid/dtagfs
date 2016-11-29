@@ -8,6 +8,7 @@ import std.path;
 import std.array;
 import std.string;
 import std.stdio;
+import std.typecons;
 
 import core.sys.posix.unistd;
 import core.stdc.string;
@@ -31,6 +32,8 @@ class FileSystem : Operations
 	private string[string] _fileLinkCache;
 
 	private bool _noCommon;
+
+	enum exclusionChar = '!';
 
 	this(string source, TagProvider[] tagProviders, bool noCommon)
 	{
@@ -76,7 +79,8 @@ class FileSystem : Operations
 		stat.st_uid = _sourceStat.st_uid;
 		stat.st_gid = _sourceStat.st_gid;
 
-		if(path == "/" || isTag(path.baseName))
+		//excluded tags are also valid directories
+		if(path == "/" || isTag(path.baseName.stripLeft(exclusionChar)))
 		{
 			stat.st_mode = _sourceStat.st_mode;
 		}
@@ -141,10 +145,14 @@ class FileSystem : Operations
 		}
 		else
 		{
-			auto tags = pathSplitter(path).array[1..$];
+			//map the path to a range of tuples with an exclude (bool) and a name (string) field for each tag in the path
+			auto tags = pathSplitter(path)
+						.array[1..$]
+						.map!(tag => tuple!("exclude", "name")(tag[0] == exclusionChar, tag.stripLeft(exclusionChar)));
 
+			//filter files with tags that (should not be excluded && can be found) || (should be excluded && can't be found)
 			return _tagCache.byKeyValue()
-				.filter!(a => tags.all!(b => a.value.canFind(b)))
+				.filter!(a => tags.all!(b => !b.exclude == a.value.canFind(b.name)))
 				.map!(a => a.key.baseName)
 				.array;
 		}
