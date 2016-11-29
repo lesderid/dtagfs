@@ -115,6 +115,15 @@ class FileSystem : Operations
 		return _fileLinkCache[name];
 	}
 
+	Tuple!(bool, "exclude", string, "name")[] pathToTagTuples(const(char)[] path)
+	{
+			//map the path to a range of tuples with an exclude (bool) and a name (string) field for each tag in the path
+			return pathSplitter(path)
+					.array[1..$]
+					.map!(tag => tuple!("exclude", "name")(tag[0] == exclusionChar, cast(immutable)tag.stripLeft(exclusionChar)))
+					.array;
+	}
+
 	string[] getTags(const(char)[] path)
 	{
 		if(path == "/")
@@ -123,12 +132,13 @@ class FileSystem : Operations
 		}
 		else
 		{
-			auto tags = pathSplitter(path).array[1..$];
+			auto tags = pathToTagTuples(path);
 
-			auto filePairs = _tagCache.byKeyValue().filter!(a => tags.all!(b => a.value.canFind(b)));
+			//filter pairs with tags that (should not be excluded && can be found) || (should be excluded && can't be found)
+			auto filePairs = _tagCache.byKeyValue().filter!(a => tags.all!(b => !b.exclude == a.value.canFind(b.name)));
 			return filePairs.map!(a => a.value)
 				.joiner
-				.filter!(a => !tags.canFind(a))
+				.filter!(a => !tags.map!(tag => tag.name).canFind(a)) //don't match tags that are already in the path
 				.filter!(a => !_noCommon || !filePairs.all!(f => f.value.canFind(a)))
 				.array
 				.sort()
@@ -145,10 +155,7 @@ class FileSystem : Operations
 		}
 		else
 		{
-			//map the path to a range of tuples with an exclude (bool) and a name (string) field for each tag in the path
-			auto tags = pathSplitter(path)
-						.array[1..$]
-						.map!(tag => tuple!("exclude", "name")(tag[0] == exclusionChar, tag.stripLeft(exclusionChar)));
+			auto tags = pathToTagTuples(path);
 
 			//filter files with tags that (should not be excluded && can be found) || (should be excluded && can't be found)
 			return _tagCache.byKeyValue()
